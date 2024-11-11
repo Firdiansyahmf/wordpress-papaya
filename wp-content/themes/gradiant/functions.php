@@ -141,3 +141,53 @@ require_once get_template_directory() . '/inc/extras.php';
  * Customizer additions.
  */
  require get_template_directory() . '/inc/customizer-repeater/functions.php';
+
+// VIEW ITEM
+function display_warung_items() {
+    global $wpdb;
+
+    // Query untuk mengambil data barang, jenis, dan ketersediaan di warung
+    $items = $wpdb->get_results("
+        SELECT 
+            wi.id_item, 
+            wi.nama_barang, 
+            wi.gambar,
+            wi.harga, 
+            wi.deskripsi, 
+            j.nama_jenis, 
+            GROUP_CONCAT(w.nama_warung SEPARATOR ', ') AS warungs,
+            GROUP_CONCAT(CONCAT('<a href=\"', w.link_lokasi, '\" target=\"_blank\">', w.nama_warung, '</a>') SEPARATOR ', ') AS links_warungs
+        FROM 
+            warung_items wi
+        JOIN 
+            jenis_items j ON wi.id_jenis = j.id_jenis
+        JOIN 
+            warung_items_availability wa ON wi.id_item = wa.id_item
+        JOIN 
+            warung w ON wa.id_warung = w.id_warung
+        GROUP BY 
+            wi.id_item
+    ");
+
+    // Membuat HTML untuk menampilkan item sebagai card
+    $output = '<div class="warung-items-container" style="display: flex; flex-wrap: wrap; gap: 20px;">';
+
+    foreach ($items as $item) {
+        $output .= '
+            <div class="warung-item-card" style="border: 1px solid #ddd; border-radius: 5px; padding: 20px; width: 250px;">
+                <img src="'. esc_html($item->gambar) .'" alt="Gambar ' . esc_html($item->nama_barang) . '">
+                <h4>' . esc_html($item->nama_barang) . '</h4>
+                <p><strong>Harga:</strong> Rp ' . number_format($item->harga, 0, ',', '.') . '</p>
+                <p><strong>Jenis:</strong> ' . esc_html($item->nama_jenis) . '</p>
+                <p><strong>Deskripsi:</strong> ' . esc_html($item->deskripsi) . '</p>
+            </div>
+        ';
+    }
+
+    $output .= '</div>';
+
+    return $output;
+}
+
+// Register shortcode
+add_shortcode('warung_items', 'display_warung_items');
